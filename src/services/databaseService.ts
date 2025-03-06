@@ -17,7 +17,7 @@ export class DatabaseService {
         .prepare('SELECT guild_id, invite_code FROM discord_servers')
         .all<Server>();
 
-      return result.results;
+      return result.results || [];
     } catch (error) {
       this.logger.error('Error fetching servers from database', error as Error);
       return [];
@@ -28,6 +28,16 @@ export class DatabaseService {
     const now = Math.floor(Date.now() / 1000);
 
     try {
+      // Ensure we have valid data before updating
+      const validData = {
+        name: data.name || 'Unknown Server',
+        icon: data.icon || null,
+        presence_count: data.presence_count || 0,
+        member_count: data.member_count || 0,
+        last_updated: now,
+        data_json: JSON.stringify(data)
+      };
+
       await this.db
         .prepare(`
           UPDATE discord_servers
@@ -41,20 +51,20 @@ export class DatabaseService {
           WHERE guild_id = ?
         `)
         .bind(
-          data.name,
-          data.icon,
-          data.presence_count,
-          data.member_count,
-          now,
-          JSON.stringify(data),
+          validData.name,
+          validData.icon,
+          validData.presence_count,
+          validData.member_count,
+          validData.last_updated,
+          validData.data_json,
           guildId
         )
         .run();
 
       this.logger.debug('Updated server data', {
         guild_id: guildId,
-        name: data.name,
-        member_count: data.member_count
+        name: validData.name,
+        member_count: validData.member_count
       });
     } catch (error) {
       this.logger.error('Error updating server data', error as Error, {
@@ -79,8 +89,8 @@ export class DatabaseService {
         `)
         .bind(
           guildId,
-          data.presence_count,
-          data.member_count,
+          data.presence_count || 0,
+          data.member_count || 0,
           now
         )
         .run();
@@ -105,18 +115,18 @@ export class DatabaseService {
       const statsResult = await this.db
         .prepare(`
           SELECT 
-            SUM(member_count) as total_members,
-            SUM(presence_count) as total_presence,
+            COALESCE(SUM(member_count), 0) as total_members,
+            COALESCE(SUM(presence_count), 0) as total_presence,
             COUNT(*) as server_count
           FROM discord_servers
         `)
         .all<GlobalStats>();
 
-      const stats = statsResult.results[0];
-
-      if (!stats) {
-        throw new Error('Failed to calculate global stats');
-      }
+      const stats = statsResult.results?.[0] || {
+        total_members: 0,
+        total_presence: 0,
+        server_count: 0
+      };
 
       // Add hourly summary entry
       await this.db

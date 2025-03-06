@@ -2,10 +2,14 @@ import { Logger } from '../utils/logger';
 import type { Server, ApifyResponse } from '../types';
 
 interface ApifyApiResponse {
-  name: string;
-  icon: string | null;
-  presence_count: number;
-  member_count: number;
+  data: {
+    guild: {
+      name: string;
+      icon: string | null;
+    };
+    presence_count: number;
+    member_count: number;
+  };
   error?: string;
 }
 
@@ -47,17 +51,21 @@ export class ApifyDiscordService {
         throw new Error(`Apify API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json() as ApifyApiResponse;
+      const apiResponse = await response.json() as ApifyApiResponse;
       
-      if (data.error) {
-        throw new Error(`Apify actor error: ${data.error}`);
+      if (apiResponse.error) {
+        throw new Error(`Apify actor error: ${apiResponse.error}`);
+      }
+
+      if (!apiResponse.data?.guild) {
+        throw new Error('Invalid API response: missing guild data');
       }
 
       return {
-        name: data.name,
-        icon: data.icon,
-        presence_count: data.presence_count,
-        member_count: data.member_count
+        name: apiResponse.data.guild.name || 'Unknown Server',
+        icon: apiResponse.data.guild.icon,
+        presence_count: apiResponse.data.presence_count || 0,
+        member_count: apiResponse.data.member_count || 0
       };
 
     } catch (error) {
@@ -92,7 +100,9 @@ export class ApifyDiscordService {
 
       const batchPromises = batch.map(async server => {
         const data = await this.fetchServerData(server);
-        results.set(server.guild_id, data);
+        if (data) {
+          results.set(server.guild_id, data);
+        }
       });
 
       await Promise.all(batchPromises);
