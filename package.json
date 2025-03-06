@@ -1,0 +1,27 @@
+{
+  "name": "discord-counter-worker",
+  "version": "1.0.0",
+  "description": "Discord Counter Worker - A Cloudflare Worker for tracking Discord server statistics",
+  "main": "dist/worker.js",
+  "scripts": {
+    "build": "wrangler build",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^3.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

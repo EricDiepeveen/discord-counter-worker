@@ -1,0 +1,19 @@
+name = "discord-counter-worker"
+main = "src/worker.ts"
+compatibility_date = "2024-03-26"
+
+[triggers]
+crons = ["0 * * * *"]  # Run every hour
+
+[[d1_databases]]
+binding = "DB"
+database_name = "discord_counter"
+database_id = ""  # Add your database ID here
+
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+# Add your secrets in the Cloudflare dashboard:
+# - APIFY_TOKEN
+# - APIFY_ACTOR_ID 
